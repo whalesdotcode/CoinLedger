@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>CoinLedger</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <!-- Sign in / create account -->
+  <main id="auth-view" class="auth" hidden>
+    <div class="auth-card">
+      <div class="brand brand-lg"><span class="brand-mark" aria-hidden="true">◎</span> CoinLedger</div>
+      <p class="muted">Track purchases, average entry price, and profit/loss across your crypto.</p>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-login" aria-selected="true">Sign in</button>
+        <button type="button" role="tab" id="tab-register" aria-selected="false">Create account</button>
+      </div>
+      <form id="auth-form" novalidate>
+        <label>Email<input name="email" type="email" autocomplete="email" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" minlength="8" required></label>
+        <p class="hint" id="password-hint" hidden>At least 8 characters.</p>
+        <p class="form-error" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary btn-block" id="auth-submit">Sign in</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Main app -->
+  <div id="app-view" hidden>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">◎</span> CoinLedger</div>
+      <div class="topbar-actions">
+        <button type="button" class="btn btn-ghost" id="btn-refresh" title="Refresh prices">↻ <span class="hide-sm">Refresh</span></button>
+        <button type="button" class="btn btn-ghost" id="btn-settings" title="Settings">⚙ <span class="hide-sm">Settings</span></button>
+        <button type="button" class="btn btn-ghost" id="btn-logout">Sign out</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="toolbar" aria-label="Filters and actions">
+        <div class="filters">
+          <label class="compact">Account
+            <select id="filter-account"><option value="">All accounts</option></select>
+          </label>
+          <label class="compact">Cryptocurrency
+            <select id="filter-asset"><option value="">All cryptocurrencies</option></select>
+          </label>
+        </div>
+        <div class="toolbar-actions">
+          <button type="button" class="btn" id="btn-accounts">Accounts</button>
+          <button type="button" class="btn btn-primary" id="btn-add">+ Add transaction</button>
+        </div>
+      </section>
+
+      <p class="price-status" id="price-status" aria-live="polite"></p>
+      <div id="banners"></div>
+
+      <section class="summary" id="summary" aria-label="Portfolio totals"></section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Holdings</h2>
+          <span class="muted small" id="cost-method-note"></span>
+        </div>
+        <div id="holdings"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Transactions</h2></div>
+        <div id="transactions"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Add / edit transaction -->
+  <dialog id="tx-dialog" class="dialog">
+    <form id="tx-form" novalidate>
+      <header class="dialog-head">
+        <h2 id="tx-title">Add transaction</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </header>
+      <div class="dialog-body">
+        <div class="segmented" role="radiogroup" aria-label="Transaction type">
+          <label><input type="radio" name="type" value="buy" checked><span>Buy</span></label>
+          <label><input type="radio" name="type" value="sell"><span>Sell</span></label>
+        </div>
+
+        <div class="field">
+          <span class="label">Cryptocurrency</span>
+          <div id="asset-selected" class="asset-chip" hidden></div>
+          <div id="asset-picker">
+            <input id="asset-search" type="search" placeholder="Search by name or symbol, e.g. Bitcoin" autocomplete="off" aria-controls="asset-results">
+            <ul id="asset-results" class="asset-results" role="listbox" hidden></ul>
+            <button type="button" class="link-btn small" id="toggle-contract">Add a token by network + contract address</button>
+            <div id="contract-form" class="contract-form" hidden>
+              <label class="compact">Network
+                <select id="contract-platform"><option value="">Loading networks…</option></select>
+              </label>
+              <label class="compact">Contract address<input id="contract-address" autocomplete="off" spellcheck="false" placeholder="0x…"></label>
+              <button type="button" class="btn" id="contract-add">Look up token</button>
+            </div>
+          </div>
+        </div>
+
+        <label>Account<select name="accountId" required></select></label>
+        <div class="grid-2">
+          <label><span id="amount-label">Amount bought</span> <span class="muted cur-label"></span><input name="amount" inputmode="decimal" autocomplete="off" placeholder="500.00" required></label>
+          <label>Price per coin <span class="muted cur-label"></span><input name="price" inputmode="decimal" autocomplete="off" placeholder="0.00" required></label>
+        </div>
+        <div class="qty-result" id="qty-result" aria-live="polite">
+          <span class="label">Quantity (calculated)</span>
+          <span class="qty-value num" id="qty-value">—</span>
+        </div>
+        <label>Transaction date<input name="date" type="date" required></label>
+        <label>Notes <span class="muted">(optional)</span><input name="notes" maxlength="500" autocomplete="off"></label>
+        <p class="form-error" role="alert" hidden></p>
+      </div>
+      <footer class="dialog-foot">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="tx-submit">Save</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- Accounts -->
+  <dialog id="accounts-dialog" class="dialog">
+    <div>
+      <header class="dialog-head">
+        <h2>Accounts</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </header>
+      <div class="dialog-body">
+        <p class="muted small">Wallets or exchanges where you hold crypto. Each transaction belongs to one account.</p>
+        <ul id="accounts-list" class="list"></ul>
+        <form id="account-form" class="inline-form" novalidate>
+          <input name="name" placeholder="New account name, e.g. Coinbase" maxlength="60" required aria-label="New account name">
+          <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+        <p class="form-error" role="alert" hidden></p>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Settings -->
+  <dialog id="settings-dialog" class="dialog">
+    <form id="settings-form" novalidate>
+      <header class="dialog-head">
+        <h2>Settings</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </header>
+      <div class="dialog-body">
+        <p class="muted small" id="settings-email"></p>
+        <label>Reporting currency<select name="reportingCurrency"></select></label>
+        <p class="hint">Prices you enter are recorded in this currency. It can be changed only while no transactions use a different currency.</p>
+        <p class="form-error" role="alert" hidden></p>
+      </div>
+      <footer class="dialog-foot">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

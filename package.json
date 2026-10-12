@@ -1,0 +1,20 @@
+{
+  "name": "coinledger",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted cryptocurrency portfolio tracker: transactions, weighted average entry price, and unrealized profit/loss.",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning --env-file-if-exists=.env src/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --env-file-if-exists=.env --watch src/index.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "decimal.js": "^10.6.0",
+    "express": "^5.1.0"
+  }
+}
